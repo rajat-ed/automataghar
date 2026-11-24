@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoMataGhar</title>
+<style>
+:root{--bg:#E6ECEA;--pn:#F6F8F5;--ink:#12262A;--mut:#5B6E70;--ln:#B9C6C1;--ply:#C98F3E;--ply2:#EBD3A6;--ok:#1F7A4D;--wn:#A86A0B;--bd:#B3261E;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+h1,h2,h3{font-family:Georgia,"Iowan Old Style",serif;margin:0;font-weight:700}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;padding:14px 20px;border-bottom:2px solid var(--ink);background:var(--pn)}
+header h1{font-size:22px}header small{color:var(--mut);display:block;font:12px var(--mono)}
+.set{display:flex;flex-wrap:wrap;gap:10px 16px;margin-left:auto;align-items:end}
+label{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:2px}
+select,input[type=number]{font:13px var(--mono);padding:5px 6px;border:1px solid var(--ink);background:#fff;color:var(--ink);border-radius:3px}
+input[type=range]{accent-color:var(--ply)}
+nav{display:flex;gap:0;overflow-x:auto;background:var(--ink)}
+nav button{background:none;border:0;color:#cfdad6;padding:11px 20px;font:600 14px system-ui;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+nav button.on{color:#fff;border-bottom-color:var(--ply);background:#1c3a40}
+nav button:focus-visible,button:focus-visible{outline:2px solid var(--ply);outline-offset:-2px}
+main{padding:18px 20px;max-width:1280px;margin:auto}
+section{display:none}section.on{display:block}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px}
+@media(max-width:900px){.row{grid-template-columns:1fr}}
+.card{background:var(--pn);border:1px solid var(--ln);border-radius:4px;padding:14px}
+.card h3{font-size:15px;margin-bottom:8px}
+canvas{width:100%;display:block;background:#fff;border:1px solid var(--ln);border-radius:3px;touch-action:none}
+button.b{font:600 13px system-ui;padding:8px 12px;border:1px solid var(--ink);background:#fff;color:var(--ink);border-radius:3px;cursor:pointer;margin:0 6px 6px 0}
+button.b:hover{background:var(--ply2)}button.p{background:var(--ink);color:#fff}button.p:hover{background:#25464d}
+.chip{display:inline-block;padding:2px 9px;border-radius:99px;font:600 12px var(--mono);color:#fff}
+.ok{background:var(--ok)}.warn{background:var(--wn)}.bad{background:var(--bd)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:6px 8px;border-bottom:1px solid var(--ln);text-align:left;vertical-align:top}
+th{font-size:12px;color:var(--mut)}td.n{font-family:var(--mono);text-align:right;white-space:nowrap}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13px}.kv b{font-family:var(--mono);font-weight:600;text-align:right}
+.msg{color:var(--mut);padding:30px;text-align:center}
+ol{padding-left:20px;margin:0}li{margin-bottom:5px}
+.sw{display:flex;gap:16px;flex-wrap:wrap}.sw>*{flex:1 1 360px}
+#partsSvg{background:#fff;border:1px solid var(--ln);overflow:auto;max-height:640px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>AutoMataGhar</h1><small>Drawing automata designer</small></div>
+  <div class="set">
+    <label>Size (mm)<input id="size" type="number" min="40" max="300" value="120" step="10" style="width:78px"></label>
+    <label>Drawing speed (rpm)<input id="rpm" type="number" min="1" max="30" value="6" step="1" style="width:78px"></label>
+    <label>Design option<select id="opt"><option value="A">A · Cheapest workable</option><option value="B">B · Higher accuracy</option><option value="C">C · Easiest to build</option></select></label>
+    <label>Motor<select id="motor"><option value="TT">TT 6V</option><option value="N20">N20 6V</option><option value="JGY">JGY-370 12V</option></select></label>
+    <label>Region<select id="region"><option>GLOBAL</option><option>US</option><option>IN</option><option>UK</option><option>DE</option><option>JP</option><option>AU</option></select></label>
+  </div>
+</header>
+<nav id="tabs"></nav>
+<main>
+<section id="s-draw"><div class="row">
+  <div><canvas id="pad" width="900" height="620" aria-label="Drawing canvas"></canvas></div>
+  <div class="card">
+    <h3>Source drawing</h3>
+    <p style="color:var(--mut);margin:0 0 10px">Draw with mouse or touch. The pen never lifts, so strokes are joined in order. Simple lines give smoother cams.</p>
+    <button class="b" id="undo">Undo stroke</button><button class="b" id="clear">Clear</button>
+    <h3 style="margin-top:10px">Presets</h3>
+    <div id="presets"></div>
+    <h3 style="margin-top:10px">Import SVG / PNG / JPG</h3>
+    <input type="file" id="file" accept=".svg,image/svg+xml,image/png,image/jpeg">
+    <div id="impMsg" style="color:var(--mut);margin-top:8px;font-size:12px"></div>
+    <div id="drawInfo" class="kv" style="margin-top:12px"></div>
+  </div>
+</div></section>
+
+<section id="s-motion"><div class="card"><h3>Motion plan: one shaft turn = one drawing</h3><canvas id="mchart" width="1100" height="520"></canvas></div>
+  <div class="card" style="margin-top:14px"><h3>Kinematics</h3><div id="mInfo" class="kv"></div></div></section>
+
+<section id="s-cams"><div class="card"><h3>Cam profiles</h3><canvas id="camv" width="1100" height="380"></canvas></div>
+  <div class="card" style="margin-top:14px"><div id="camTable"></div></div></section>
+
+<section id="s-sim"><div class="card"><h3>Simulation</h3>
+  <canvas id="simv" width="1000" height="520"></canvas>
+  <div style="display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap">
+    <button class="b p" id="play">Pause</button>
+    <button class="b" id="reset">Redraw</button>
+    <label style="flex:1;min-width:200px">Shaft angle <input id="ang" type="range" min="0" max="719" value="0"></label>
+    <label>Speed<select id="spd"><option value="1">1×</option><option value="3" selected>3×</option><option value="8">8×</option></select></label>
+  </div></div></section>
+
+<section id="s-parts"><div class="card">
+  <h3>Plywood cutting sheets</h3>
+  <label style="display:inline-flex;flex-direction:row;gap:8px;align-items:center;margin-right:12px">Sheet W×H (mm)
+    <input id="sw" type="number" value="600" style="width:70px"><input id="sh" type="number" value="450" style="width:70px"></label>
+  <label style="display:inline-flex;flex-direction:row;gap:8px;align-items:center;margin-right:12px">Kerf gap<input id="gap" type="number" value="4" style="width:56px"></label>
+  <button class="b p" id="dSvg">Download SVG</button><button class="b p" id="dDxf">Download DXF</button>
+  <div id="partInfo" style="margin:10px 0;color:var(--mut)"></div>
+  <div id="partsSvg"></div></div></section>
+
+<section id="s-build"><div class="sw">
+  <div class="card"><h3>Validation</h3><div id="checks"></div></div>
+  <div class="card"><h3>Bill of materials</h3><div id="bom"></div></div>
+  <div class="card"><h3>Build manual</h3><ol id="steps"></ol></div>
+  <div class="card"><h3>Troubleshooting</h3><div id="trouble"></div></div>
+</div></section>
+</main>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s),TAU=Math.PI*2,N=720;
+const OPTS={A:{n:'Cheapest workable',Rb:16,Rr:4,k:2,lev:.5},B:{n:'Higher accuracy',Rb:26,Rr:5,k:1,lev:1},C:{n:'Easiest to build',Rb:22,Rr:6,k:4,lev:.75}};
+const MOTORS={TT:{n:'TT 6V gear motor',rpm:125,kgcm:.8,p:2.5,v:'6V'},N20:{n:'N20 6V gear motor',rpm:60,kgcm:1.5,p:4,v:'6V'},JGY:{n:'JGY-370 12V gear motor',rpm:30,kgcm:12,p:9,v:'12V'}};
+const REG={GLOBAL:['$',1],US:['$',1],IN:['₹',46],UK:['£',.8],DE:['€',.95],JP:['¥',135],AU:['A$',1.5]};
+const TABS=[['draw','Draw'],['motion','Motion'],['cams','Cams'],['sim','Simulate'],['parts','Parts'],['build','Build & check']];
+const S={strokes:[],size:120,rpm:6,opt:'A',motor:'TT',region:'GLOBAL',R:null,tab:'draw',play:true,ang:0};
+
+/* ---------- geometry helpers ---------- */
+function rdp(p,e){if(p.length<3)return p;let d=0,ix=0;const a=p[0],b=p[p.length-1],dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1e-9;
+ const cl=L<=e;for(let i=1;i<p.length-1;i++){const t=cl?Math.hypot(p[i][0]-a[0],p[i][1]-a[1]):Math.abs(dy*p[i][0]-dx*p[i][1]+b[0]*a[1]-b[1]*a[0])/L;if(t>d){d=t;ix=i}}
+ if(d>e){const l=rdp(p.slice(0,ix+1),e),r=rdp(p.slice(ix),e);return l.slice(0,-1).concat(r)}return[a,b]}
+function sm(a,k,pass=1){while(pass--){const s=a;a=s.map((_,i)=>{let t=0;for(let j=-k;j<=k;j++)t+=s[(i+j+N)%N];return t/(2*k+1)})}return a}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ---------- vectorize: presets, SVG, raster ---------- */
+const PRE={
+ Heart:()=>[Array.from({length:81},(_,i)=>{const t=i/80*TAU;return[250+14*16*Math.pow(Math.sin(t),3),260-14*(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))]})],
+ Star:()=>[Array.from({length:6},(_,i)=>{const t=(i*2%5)/5*TAU-Math.PI/2+(i==5?TAU:0);const k=i*2%5;const a=k/5*TAU-Math.PI/2;return[300+200*Math.cos(a),300+200*Math.sin(a)]})],
+ Spiral:()=>[Array.from({length:161},(_,i)=>{const t=i/160*TAU*3;return[300+t*11*Math.cos(t),300+t*11*Math.sin(t)]})],
+ Flower:()=>[Array.from({length:241},(_,i)=>{const t=i/240*TAU,r=210*Math.cos(3*t)||0;return[300+r*Math.cos(t),300+r*Math.sin(t)]})],
+ House:()=>[[[120,300],[120,520],[260,520],[260,400],[340,400],[340,520],[480,520],[480,300],[300,120],[120,300],[480,300]]]
+};
+Object.keys(PRE).forEach(k=>{const b=document.createElement('button');b.className='b';b.textContent=k;b.onclick=()=>{S.strokes=PRE[k]();refresh()};$('#presets').appendChild(b)});
+
+function note(t){$('#impMsg').textContent=t}
+function orderStrokes(st){st=st.filter(s=>s.length>1);if(!st.length)return st;st.sort((a,b)=>b.length-a.length);const out=[st.shift()];
+ while(st.length){const e=out[out.length-1][out[out.length-1].length-1];let bi=0,bd=1e18,rev=false;
+  st.forEach((s,i)=>{const f=s[0],l=s[s.length-1],d1=(f[0]-e[0])**2+(f[1]-e[1])**2,d2=(l[0]-e[0])**2+(l[1]-e[1])**2;if(d1<bd){bd=d1;bi=i;rev=false}if(d2<bd){bd=d2;bi=i;rev=true}});
+  const s=st.splice(bi,1)[0];out.push(rev?s.reverse():s)}return out}
+function fitPad(st){st=orderStrokes(st);if(!st.length)return st;let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+ st.forEach(s=>s.forEach(p=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1])}));
+ const k=Math.min(820/((x1-x0)||1),540/((y1-y0)||1)),cx=(x0+x1)/2,cy=(y0+y1)/2;return st.map(s=>s.map(p=>[450+(p[0]-cx)*k,310+(p[1]-cy)*k]))}
+function importSvg(txt){
+ const doc=new DOMParser().parseFromString(txt,'image/svg+xml'),root=doc.documentElement;
+ if(!root||root.nodeName.toLowerCase()!=='svg'||doc.querySelector('parsererror'))return[];
+ root.querySelectorAll('script,foreignObject,image').forEach(n=>n.remove());
+ root.querySelectorAll('*').forEach(n=>[...n.attributes].forEach(a=>{if(/^on/i.test(a.name))n.removeAttribute(a.name)}));
+ const host=document.createElement('div');host.style.cssText='position:absolute;left:-9999px;top:0;width:400px;height:400px;visibility:hidden';
+ const svg=document.importNode(root,true);svg.setAttribute('width','400');svg.setAttribute('height','400');host.appendChild(svg);document.body.appendChild(host);
+ const out=[];
+ svg.querySelectorAll('path,line,polyline,polygon,rect,circle,ellipse').forEach((el,idx)=>{if(idx>600||el.closest('defs,clipPath,mask,symbol'))return;
+  try{const L=el.getTotalLength();if(!(L>0))return;const M=el.getCTM()||{a:1,b:0,c:0,d:1,e:0,f:0},sc=Math.hypot(M.a,M.b)||1,st=Math.max(L/900,.25);let cur=[],prev=null;
+   for(let d=0;d<=L+st/2;d+=st){const q=el.getPointAtLength(Math.min(d,L)),X=M.a*q.x+M.c*q.y+M.e,Y=M.b*q.x+M.d*q.y+M.f;
+    if(prev&&Math.hypot(X-prev[0],Y-prev[1])>st*sc*6){if(cur.length>1)out.push(cur);cur=[]}cur.push([X,Y]);prev=[X,Y]}
+   if(cur.length>1)out.push(cur)}catch(e){}});
+ host.remove();return out}
+function thin(b,W,H){const P=(x,y)=>b[y*W+x];let ch=true;
+ while(ch){ch=false;for(let pass=0;pass<2;pass++){const del=[];
+  for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){if(!b[y*W+x])continue;
+   const p2=P(x,y-1),p3=P(x+1,y-1),p4=P(x+1,y),p5=P(x+1,y+1),p6=P(x,y+1),p7=P(x-1,y+1),p8=P(x-1,y),p9=P(x-1,y-1);
+   const B=p2+p3+p4+p5+p6+p7+p8+p9;if(B<2||B>6)continue;
+   const A=(!p2&&p3?1:0)+(!p3&&p4?1:0)+(!p4&&p5?1:0)+(!p5&&p6?1:0)+(!p6&&p7?1:0)+(!p7&&p8?1:0)+(!p8&&p9?1:0)+(!p9&&p2?1:0);if(A!==1)continue;
+   if(pass===0){if(p2*p4*p6||p4*p6*p8)continue}else{if(p2*p4*p8||p2*p6*p8)continue}
+   del.push(y*W+x)}
+  del.forEach(i=>b[i]=0);if(del.length)ch=true}}}
+function nbc(a,W,H,i){const x=i%W,y=(i/W)|0;let c=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(dx||dy){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<W&&Y<H&&a[Y*W+X])c++}}return c}
+function prune(a,W,H,n){const o=a.slice();
+ for(let t=0;t<n;t++){const d=[];for(let i=0;i<W*H;i++)if(a[i]&&nbc(a,W,H,i)<=1)d.push(i);d.forEach(i=>a[i]=0)}
+ for(let t=0;t<n;t++){const g=[];for(let i=0;i<W*H;i++)if(a[i]&&nbc(a,W,H,i)<=1){const x=i%W,y=(i/W)|0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<W&&Y<H){const j=Y*W+X;if(o[j]&&!a[j])g.push(j)}}}g.forEach(j=>a[j]=1)}}
+function traceGray(g,W,H){
+ const hs=new Array(256).fill(0);for(let i=0;i<W*H;i++)hs[g[i]]++;
+ let sum=0;for(let i=0;i<256;i++)sum+=i*hs[i];let sb=0,wb=0,mx=-1,th=128;
+ for(let t=0;t<256;t++){wb+=hs[t];if(!wb)continue;const wf=W*H-wb;if(!wf)break;sb+=t*hs[t];const mb=sb/wb,mf=(sum-sb)/wf,v=wb*wf*(mb-mf)**2;if(v>mx){mx=v;th=t}}
+ const b=new Uint8Array(W*H);let ink=0;for(let i=0;i<W*H;i++)if(g[i]<=th){b[i]=1;ink++}
+ if(ink>W*H*.5){for(let i=0;i<W*H;i++)b[i]^=1;ink=W*H-ink}
+ if(!ink)return[];
+ const tb=b.slice();thin(tb,W,H);let sk=0;for(let i=0;i<W*H;i++)sk+=tb[i];
+ let pix;
+ if(ink/Math.max(sk,1)>5){pix=new Uint8Array(W*H);const B=(x,y)=>x>=0&&y>=0&&x<W&&y<H&&b[y*W+x];
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(b[y*W+x]&&(!B(x-1,y)||!B(x+1,y)||!B(x,y-1)||!B(x,y+1)))pix[y*W+x]=1}
+ else{pix=tb;prune(pix,W,H,6)}
+ const seen=new Uint8Array(W*H);
+ const nb=(i,vx,vy)=>{const x=i%W,y=(i/W)|0;let best=-1,bs=-9;const vm=Math.hypot(vx,vy)||1;
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=W||Y>=H)continue;const j=Y*W+X;
+   if(pix[j]&&!seen[j]){const m=Math.hypot(dx,dy),s=(dx*vx+dy*vy)/(m*vm)-(m>1?.01:0);if(s>bs){bs=s;best=j}}}
+  if(best>=0)return best;let bd=11;
+  for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){const X=x+dx,Y=y+dy,d=dx*dx+dy*dy;if(d<=2||d>=bd||X<0||Y<0||X>=W||Y>=H)continue;const j=Y*W+X;if(pix[j]&&!seen[j]){bd=d;best=j}}
+  return best};
+ const walk=(i,arr,front)=>{let vx=0,vy=0;for(;;){const j=nb(i,vx,vy);if(j<0)break;seen[j]=1;vx=(j%W)-(i%W);vy=((j/W)|0)-((i/W)|0);const p=[j%W,(j/W)|0];front?arr.push(p):arr.unshift(p);i=j}};
+ const ends=[],rest=[];for(let i=0;i<W*H;i++)if(pix[i])(nbc(pix,W,H,i)<=1?ends:rest).push(i);
+ const out=[];
+ for(const i of ends.concat(rest)){if(seen[i])continue;seen[i]=1;const arr=[[i%W,(i/W)|0]];walk(i,arr,true);walk(i,arr,false);
+  if(arr.length>=10){const f=arr[0],l=arr[arr.length-1];if(arr.length>20&&Math.hypot(f[0]-l[0],f[1]-l[1])<=3)arr.push([f[0],f[1]]);out.push(rdp(arr,.7))}}
+ return out}
+function importRaster(img){
+ const M=320,r=Math.min(M/img.width,M/img.height),W=Math.max(8,Math.round(img.width*r)),H=Math.max(8,Math.round(img.height*r));
+ const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,H);x.drawImage(img,0,0,W,H);
+ const d=x.getImageData(0,0,W,H).data,g=new Uint8Array(W*H);for(let i=0;i<W*H;i++)g[i]=Math.round(.299*d[i*4]+.587*d[i*4+1]+.114*d[i*4+2]);
+ return traceGray(g,W,H)}
+$('#file').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+ const done=st=>{st=fitPad(st);if(!st.length){note('No drawable lines found. Use dark lines on a plain background.');return}S.strokes=st;note(`Imported ${st.length} path${st.length>1?'s':''} from ${f.name}.`);refresh()};
+ const raster=()=>{const im=new Image();im.onload=()=>done(importRaster(im));im.onerror=()=>note('Could not read this image.');im.src=URL.createObjectURL(f)};
+ if(/svg/i.test(f.type)||/\.svg$/i.test(f.name)){f.text().then(t=>{let st=[];try{st=importSvg(t)}catch(_){}st.length?done(st):raster()})}else raster()};
+
+/* ---------- drawing pad ---------- */
+const pad=$('#pad'),pc=pad.getContext('2d');let drawing=null;
+function pp(e){const r=pad.getBoundingClientRect();return[(e.clientX-r.left)*pad.width/r.width,(e.clientY-r.top)*pad.height/r.height]}
+pad.onpointerdown=e=>{pad.setPointerCapture(e.pointerId);drawing=[pp(e)];S.strokes.push(drawing);renderPad()};
+pad.onpointermove=e=>{if(!drawing)return;const p=pp(e),l=drawing[drawing.length-1];if(Math.hypot(p[0]-l[0],p[1]-l[1])>3){drawing.push(p);renderPad()}};
+pad.onpointerup=()=>{drawing=null;refresh()};
+$('#undo').onclick=()=>{S.strokes.pop();refresh()};$('#clear').onclick=()=>{S.strokes=[];refresh()};
+function renderPad(){const w=pad.width,h=pad.height;pc.clearRect(0,0,w,h);pc.strokeStyle='#E3EAE7';pc.lineWidth=1;
+ for(let x=0;x<w;x+=30){pc.beginPath();pc.moveTo(x,0);pc.lineTo(x,h);pc.stroke()}for(let y=0;y<h;y+=30){pc.beginPath();pc.moveTo(0,y);pc.lineTo(w,y);pc.stroke()}
+ if(!S.strokes.length){pc.fillStyle='#8aa0a0';pc.font='16px system-ui';pc.textAlign='center';pc.fillText('Draw here, pick a preset, or import a file',w/2,h/2)}
+ const col=['#12262A','#A8530B','#1F6F8B','#7A2E6E'];
+ S.strokes.forEach((s,i)=>{pc.strokeStyle=col[i%4];pc.lineWidth=2.5;pc.lineJoin='round';pc.beginPath();s.forEach((p,j)=>j?pc.lineTo(p[0],p[1]):pc.moveTo(p[0],p[1]));pc.stroke();
+  if(s.length){pc.fillStyle=col[i%4];pc.beginPath();pc.arc(s[0][0],s[0][1],4,0,TAU);pc.fill()}});
+ const n=S.strokes.filter(s=>s.length>1).length,pts=S.strokes.reduce((a,s)=>a+s.length,0);
+ $('#drawInfo').innerHTML=`<span>Strokes</span><b>${n}</b><span>Points</span><b>${pts}</b>`}
+
+/* ---------- motion planner ---------- */
+function plan(kk){
+ const st=S.strokes.filter(s=>s.length>1).map(s=>rdp(s,.8));if(!st.length)return null;
+ let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;st.forEach(s=>s.forEach(p=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1])}));
+ const k=S.size/(Math.max(x1-x0,y1-y0)||1),cx=(x0+x1)/2,cy=(y0+y1)/2,T=p=>[(p[0]-cx)*k,-(p[1]-cy)*k];
+ const T2=st.map(s=>s.map(T)),segs=[];let cur=null;
+ T2.forEach(s=>{if(cur)segs.push({a:cur,b:s[0]});for(let i=1;i<s.length;i++)segs.push({a:s[i-1],b:s[i]});cur=s[s.length-1]});
+ segs.push({a:cur,b:T2[0][0]});
+ let L0=0;segs.forEach(g=>{g.w=Math.max(Math.abs(g.b[0]-g.a[0]),Math.abs(g.b[1]-g.a[1]))+1e-6;L0+=g.w});
+ const seq=[];segs.forEach((g,i)=>{seq.push(g);const h=segs[(i+1)%segs.length],u=[g.b[0]-g.a[0],g.b[1]-g.a[1]],v=[h.b[0]-h.a[0],h.b[1]-h.a[1]],mu=Math.hypot(...u),mv=Math.hypot(...v);
+  if(mu>1e-6&&mv>1e-6){const ph=Math.acos(clamp((u[0]*v[0]+u[1]*v[1])/(mu*mv),-1,1));if(ph>.12)seq.push({a:g.b,b:g.b,w:ph/Math.PI*L0*(2*kk+2)/N})}});
+ segs.length=0;seq.forEach(g=>segs.push(g));
+ let tot=0;segs.forEach(g=>{g.c=tot;tot+=g.w});
+ const x=[],y=[];let j=0;
+ for(let i=0;i<N;i++){const t=i/N*tot;while(j<segs.length-1&&segs[j].c+segs[j].w<t)j++;const g=segs[j],u=clamp((t-g.c)/g.w,0,1);
+  x.push(g.a[0]+(g.b[0]-g.a[0])*u);y.push(g.a[1]+(g.b[1]-g.a[1])*u)}
+ return{x,y,strokes:T2}}
+
+/* ---------- cam synthesis ---------- */
+function cam(u,lift,Rb,Rr,w){
+ const h=TAU/N,Rp=u.map(v=>Rb+lift*v);let pa=0,rho=1e9,a2=0;const d1=[],d2=[];
+ for(let i=0;i<N;i++){const a=Rp[(i+N-1)%N],b=Rp[i],c=Rp[(i+1)%N],f=(c-a)/(2*h),s=(c-2*b+a)/(h*h);d1.push(f);d2.push(s);
+  pa=Math.max(pa,Math.atan(Math.abs(f)/b)*180/Math.PI);
+  const den=b*b+2*f*f-b*s;if(den>1e-9)rho=Math.min(rho,Math.pow(b*b+f*f,1.5)/den);a2=Math.max(a2,Math.abs(s)*w*w)}
+ const pts=Rp.map((r,i)=>{const t=i/N*TAU,c=Math.cos(t),s=Math.sin(t),f=d1[i],tx=f*c-r*s,ty=f*s+r*c,m=Math.hypot(tx,ty)||1;return[r*c-Rr*ty/m,r*s+Rr*tx/m]});
+ return{Rp,pts,minR:Math.min(...pts.map(q=>Math.hypot(q[0],q[1]))),pa,rho,a2,d1,Rmax:Math.max(...Rp)}}
+function camErr(c,Rr){let mx=0;
+ for(let i=0;i<N;i+=3){const a=i/N*TAU,dx=Math.cos(a),dy=Math.sin(a);let s=-1e9;
+  for(let j=0;j<N;j++){const q=c.pts[j],pe=q[0]*dy-q[1]*dx;if(Math.abs(pe)<Rr){const v=q[0]*dx+q[1]*dy+Math.sqrt(Rr*Rr-pe*pe);if(v>s)s=v}}
+  mx=Math.max(mx,Math.abs(s-c.Rp[i]))}return mx}
+
+function compute(){const o=OPTS[S.opt],lim=Math.min(+$('#sw').value||600,+$('#sh').value||450)-10;
+ const pm=r=>Math.max(r.C.X.pa,r.C.Y.pa),cv=r=>r.C.X.rho>=r.o.Rr&&r.C.Y.rho>=r.o.Rr;let best=null;
+ outer:for(const f of[1,.75,.5,.35,.25]){const lv=Math.max(.25,o.lev*f);
+  for(const m of[1,1.5,2.2,3]){computeK(o.k,m,lv);let r=S.R;if(!r)return;if(m>1&&2*r.Rmax+40>lim)break;
+   if(!best||pm(r)<pm(best))best=r;
+   if(pm(r)<=30){for(let kk=o.k+1;kk<=14&&!cv(r);kk++){computeK(kk,m,lv);r=S.R}best=r;break outer}}}
+ if(best){const lev=best.o.lev,rk=(v,a,b)=>v<=a?'ok':v<=b?'warn':'bad';
+  ['X','Y'].forEach(k=>best.C[k].err=camErr(best.C[k],best.o.Rr));
+  const e=Math.max(best.C.X.err,best.C.Y.err),mr=Math.min(best.C.X.minR,best.C.Y.minR);
+  best.checks.push({n:'Roller-path accuracy',v:`${e.toFixed(2)} mm cam · ${(e/lev).toFixed(2)} mm pen`,l:rk(e/lev,.5,1.5),t:'Gap between the roller path on the cut profile and the intended path'});
+  best.checks.push({n:'Cam web (min radius)',v:mr.toFixed(1)+' mm',l:mr>=8?'ok':mr>=5?'warn':'bad',t:'Needs hub (3 mm) plus ≥5 mm of wood'});
+  best.worst=['ok','warn','bad'][Math.max(...best.checks.map(c=>({ok:0,warn:1,bad:2})[c.l]))]}
+ S.R=best}
+function computeK(kk,mul=1,lvr){
+ const P=plan(kk);if(!P){S.R=null;return}
+ const o={...OPTS[S.opt]};if(lvr)o.lev=lvr;const m=MOTORS[S.motor],size=S.size;o.Rb*=Math.max(1,size/120)*mul;const w=S.rpm*TAU/60,dt=60/S.rpm/N;
+ const x=sm(P.x,kk,2),y=sm(P.y,kk,2);
+ let vm=0,am=0;const v=x.map((_,i)=>Math.hypot(x[(i+1)%N]-x[i],y[(i+1)%N]-y[i])/dt);
+ v.forEach((q,i)=>{vm=Math.max(vm,q);am=Math.max(am,Math.abs(v[(i+1)%N]-q)/dt)});
+ const lift=size*o.lev,u=a=>a.map(q=>clamp((q+size/2)/size,0,1));
+ const C={X:cam(u(x),lift,o.Rb,o.Rr,w),Y:cam(u(y),lift,o.Rb,o.Rr,w)};
+ const red=m.rpm/S.rpm,Rmax=Math.max(C.X.Rmax,C.Y.Rmax),Fs=1.5;
+ const load=['X','Y'].reduce((a,k)=>a+Fs*C[k].Rp[0]*(Math.tan(C[k].pa*Math.PI/180)+.2),0)/98.07;
+ const eff=m.kgcm*Math.max(red,1)*.5,margin=eff/load;
+ const ffol=k=>(.04*C[k].a2/1000)+.4;
+ const lv=(val,okc,wnc)=>val<=okc?'ok':val<=wnc?'warn':'bad';
+ const hi=(val,okc,wnc)=>val>=okc?'ok':val>=wnc?'warn':'bad';
+ const checks=[];
+ ['X','Y'].forEach(k=>checks.push({n:`Pressure angle · ${k} cam`,v:C[k].pa.toFixed(1)+'°',l:lv(C[k].pa,30,38),t:'≤30° keeps followers from binding'}));
+ ['X','Y'].forEach(k=>checks.push({n:`Undercut curvature · ${k} cam`,v:C[k].rho>1e8?'convex-safe':C[k].rho.toFixed(1)+' mm',l:C[k].rho>=o.Rr*1.2?'ok':C[k].rho>=o.Rr?'warn':'bad',t:`Min curvature radius must exceed roller radius ${o.Rr} mm`}));
+ checks.push({n:'Motor torque safety margin',v:margin.toFixed(1)+'×',l:hi(margin,3,1.5),t:`Load ≈ ${load.toFixed(2)} kg·cm, ${red>1?'extra reduction '+red.toFixed(1)+':1':'direct drive'}`});
+ const fr=Math.max(ffol('X'),ffol('Y'));checks.push({n:'Spring return force',v:fr.toFixed(2)+' N need',l:lv(fr,Fs*.7,Fs),t:`Use ≥${Fs} N spring; follower must not lift off cam`});
+ const maxPlate=2*Rmax+40;
+ checks.push({n:'Plywood wall clearance',v:maxPlate.toFixed(0)+' mm plate',l:lv(maxPlate,Math.min(+$('#sw').value,+$('#sh').value)-20,Math.min(+$('#sw').value,+$('#sh').value)),t:'Largest plate must fit the sheet'});
+ checks.push({n:'Pantograph error gain',v:'×'+(1/o.lev).toFixed(1),l:lv(1/o.lev,2.2,4.1),t:'Cut and assembly errors are multiplied by this at the pen'});
+ checks.push({n:'Pen speed',v:vm.toFixed(0)+' mm/s',l:lv(vm,120,250),t:'Slower speed gives cleaner lines'});
+ checks.push({n:'Pen acceleration',v:am.toFixed(0)+' mm/s²',l:lv(am,1500,4000),t:'High values mean ink wobble; simplify or slow down'});
+ const rank={ok:0,warn:1,bad:2};const worst=checks.reduce((a,c)=>Math.max(a,rank[c.l]),0);
+ let dm=0,sq=0;for(let i=0;i<N;i++){const e=Math.hypot(x[i]-P.x[i],y[i]-P.y[i]);dm=Math.max(dm,e);sq+=e*e}
+ S.R={k:kk,mul,dev:dm,rms:Math.sqrt(sq/N),px:P.x,py:P.y,P,x,y,vm,am,C,o,m,red,Rmax,checks,worst:['ok','warn','bad'][worst],lift,load,margin}}
+
+/* ---------- parts, nesting, export ---------- */
+function parts(){
+ const R=S.R,sz=S.size,Rm=R.Rmax+4,pl=[];
+ ['X','Y'].forEach(k=>pl.push({name:`Cam ${k}`,qty:1,w:2*Rm,h:2*Rm,cam:R.C[k].pts,holes:[{x:0,y:0,d:6}]}));
+ const side=2*R.Rmax+40;
+ pl.push({name:'Side plate',qty:2,w:side,h:side,holes:[{x:0,y:0,d:6.4},{x:-side/2+8,y:-side/2+8,d:3.2},{x:side/2-8,y:-side/2+8,d:3.2},{x:-side/2+8,y:side/2-8,d:3.2},{x:side/2-8,y:side/2-8,d:3.2}]});
+ pl.push({name:'Base',qty:1,w:90,h:side,holes:[{x:-30,y:0,d:3.2},{x:30,y:0,d:3.2}]});
+ pl.push({name:'Follower guide',qty:2,w:36,h:Math.round(sz*R.o.lev+36),holes:[{x:0,y:-8,d:4.2}],slot:true});
+ pl.push({name:'Pen arm',qty:1,w:Math.round(sz*1.3),h:14,holes:[{x:-sz*.6,y:0,d:3.2},{x:sz*.6,y:0,d:8}]});
+ pl.push({name:'Paper table',qty:1,w:sz+40,h:sz+40,holes:[]});
+ pl.push({name:'Spacer ring',qty:4,w:18,h:18,holes:[{x:0,y:0,d:6.2}],round:true});
+ return pl}
+function pack(pl,SW,SH,g){const it=[];pl.forEach(p=>{for(let q=0;q<p.qty;q++)it.push({...p})});it.sort((a,b)=>b.h-a.h);
+ let s=0,x=g,y=g,rh=0;it.forEach(p=>{if(x+p.w+g>SW){x=g;y+=rh+g;rh=0}if(y+p.h+g>SH){s++;x=g;y=g;rh=0}p.x=x;p.y=y;p.s=s;x+=p.w+g;rh=Math.max(rh,p.h)});return{it,n:s+1}}
+function outline(p){const cx=p.x+p.w/2,cy=p.y+p.h/2;
+ if(p.cam)return p.cam.map(q=>[cx+q[0],cy+q[1]]);
+ return[[p.x,p.y],[p.x+p.w,p.y],[p.x+p.w,p.y+p.h],[p.x,p.y+p.h]]}
+function sheets(){const SW=+$('#sw').value||600,SH=+$('#sh').value||450,g=+$('#gap').value||4,k=pack(parts(),SW,SH,g);return{...k,SW,SH}}
+function svgOut(){const{it,n,SW,SH}=sheets();let o=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${n*(SH+20)}" width="${SW}mm" height="${n*(SH+20)}mm" fill="none" stroke-width=".3">`;
+ for(let s=0;s<n;s++){const oy=s*(SH+20);o+=`<rect x="0" y="${oy}" width="${SW}" height="${SH}" stroke="#999" stroke-dasharray="4 3"/><text x="4" y="${oy+SH+12}" font-size="9" fill="#555" stroke="none">Sheet ${s+1} · ${SW}×${SH} mm · 3 mm ply</text>`}
+ it.forEach(p=>{const oy=p.s*(SH+20),cx=p.x+p.w/2,cy=p.y+p.h/2+oy;
+  if(p.cam)o+=`<path stroke="#d00" d="M${outline(p).map(q=>q[0].toFixed(2)+' '+(q[1]+oy).toFixed(2)).join('L')}Z"/>`;
+  else if(p.round)o+=`<circle stroke="#d00" cx="${cx}" cy="${cy}" r="${p.w/2}"/>`;
+  else o+=`<rect stroke="#d00" x="${p.x}" y="${p.y+oy}" width="${p.w}" height="${p.h}"/>`;
+  p.holes.forEach(h=>o+=`<circle stroke="#06c" cx="${cx+h.x}" cy="${cy+h.y}" r="${h.d/2}"/>`);
+  if(p.slot)o+=`<rect stroke="#06c" x="${cx-2}" y="${p.y+oy+14}" width="4" height="${p.h-40}" rx="2"/>`;
+  o+=`<text x="${p.x+2}" y="${p.y+oy+8}" font-size="6" fill="#333" stroke="none">${p.name}</text>`});
+ return o+'</svg>'}
+function dxfOut(){const{it,SH}=sheets();let o='0\nSECTION\n2\nENTITIES\n';const Y=(y,s)=>(SH-y-s*(SH+20)).toFixed(3);
+ it.forEach(p=>{let pts=p.round?Array.from({length:48},(_,i)=>[p.x+p.w/2+p.w/2*Math.cos(i/48*TAU),p.y+p.h/2+p.h/2*Math.sin(i/48*TAU)]):outline(p);
+  o+=`0\nLWPOLYLINE\n8\nCUT\n90\n${pts.length}\n70\n1\n`+pts.map(q=>`10\n${q[0].toFixed(3)}\n20\n${Y(q[1],p.s)}\n`).join('');
+  p.holes.forEach(h=>o+=`0\nCIRCLE\n8\nHOLES\n10\n${(p.x+p.w/2+h.x).toFixed(3)}\n20\n${Y(p.y+p.h/2+h.y,p.s)}\n40\n${h.d/2}\n`)});
+ return o+'0\nENDSEC\n0\nEOF\n'}
+function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+$('#dSvg').onclick=()=>S.R&&dl('automata-cutting-sheets.svg',svgOut(),'image/svg+xml');
+$('#dDxf').onclick=()=>S.R&&dl('automata-cutting-sheets.dxf',dxfOut(),'application/dxf');
+['sw','sh','gap'].forEach(i=>$('#'+i).onchange=refresh);
+
+/* ---------- bill of materials & manual ---------- */
+function bomRows(){const m=S.R.m,n=sheets().n;
+ return[['Birch plywood 3 mm sheet',n,6],[m.n,1,m.p],['Battery holder + switch',1,1.5],['Steel/brass shaft 6 mm × 150 mm',1,1.2],['Roller bearings (4–6 mm roller)',2,.6],['Tension springs ~1.5 N',2,.4],['Steel guide rods 4 mm',2,.5],['M3 screws, nuts, washers (kit)',1,2],['Wood glue',1,1.5],['Marker pen / pencil + paper',1,1],['Stage reduction (pulley or worm) – if needed',S.R.red>1.5?1:0,2.5]].filter(r=>r[1]>0)}
+const STEPS=['Print or cut the SVG/DXF on 3 mm plywood. Sand edges lightly; keep cams smooth, as roughness shows up directly in lines.','Glue the two side plates to the base with the shaft holes aligned. Check squareness before the glue sets.','Slide the 6 mm shaft through the side plates. Mount cams X and Y on the shaft with spacer rings, keeping the 0° marks aligned, then fix with glue or set pins.','Fit each follower in its guide plate, with a roller on its end and a spring pulling it toward the cam.','Link the X and Y followers to the pen carriage so the pen moves on the paper plane.','Mount the motor, add the reduction stage if the Build tab asks for one, and couple it to the shaft.','Tape paper on the table, insert the pen, switch on and run one full turn, then calibrate.'];
+const TROUBLE=[['Follower jumps off the cam','Use a stronger spring, slow down, or pick Option B for gentler cams.'],['Motor stalls at a steep section','Add reduction, lower rpm, or raise cam base radius.'],['Lines wobble','Lower speed, smooth the drawing, or remove tiny details.'],['Drawing does not close','Check cam angles on the shaft and any loose set screws.']];
+
+/* ---------- renderers ---------- */
+const chipHtml=l=>`<span class="chip ${l}">${{ok:'PASS',warn:'WARN',bad:'FAIL'}[l]}</span>`;
+function empty(id){$(id).innerHTML='<div class="msg">Add a drawing in the Draw tab first.</div>'}
+function strip(cv,rows){const c=cv.getContext('2d'),w=cv.width,h=cv.height,rh=h/rows.length;c.clearRect(0,0,w,h);c.font='13px system-ui';
+ rows.forEach((r,k)=>{const y0=k*rh+24,y1=(k+1)*rh-14,mn=r.min,mx=r.max;c.strokeStyle='#E3EAE7';c.lineWidth=1;
+  for(let a=0;a<=360;a+=45){const X=50+a/360*(w-70);c.beginPath();c.moveTo(X,y0);c.lineTo(X,y1);c.stroke();if(k==rows.length-1){c.fillStyle='#5B6E70';c.fillText(a+'°',X-10,h-1)}}
+  c.fillStyle=r.col;c.fillText(r.name,6,y0+10);c.strokeStyle=r.col;c.lineWidth=2;c.beginPath();
+  r.d.forEach((v,i)=>{const X=50+i/N*(w-70),Y=y1-(v-mn)/((mx-mn)||1)*(y1-y0);i?c.lineTo(X,Y):c.moveTo(X,Y)});c.stroke()})}
+function renderMotion(){const R=S.R;if(!R)return empty('#mInfo'),void strip($('#mchart'),[]);const h=S.size/2;
+ strip($('#mchart'),[{name:'X mm',d:R.x,min:-h,max:h,col:'#12262A'},{name:'Y mm',d:R.y,min:-h,max:h,col:'#A8530B'}]);
+ $('#mInfo').innerHTML=`<span>Peak pen speed</span><b>${R.vm.toFixed(0)} mm/s</b><span>Peak acceleration</span><b>${R.am.toFixed(0)} mm/s²</b><span>Path error vs. source</span><b>max ${R.dev.toFixed(2)} mm · rms ${R.rms.toFixed(2)} mm</b><span>Corner rounding</span><b>${R.k===OPTS[S.opt].k?'minimal':'widened to '+(2*R.k+1)+' samples'}</b><span>Cycle time</span><b>${(60/S.rpm).toFixed(1)} s</b><span>Shaft reduction needed</span><b>${R.red>1.05?R.red.toFixed(1)+':1 beyond motor':'none'}</b><span>Feasibility</span><b>${chipHtml(R.worst==='bad'?'bad':R.vm>250||R.am>4000?'bad':R.vm>120||R.am>1500?'warn':'ok')}</b>`}
+function drawCam(c,cam,cx,cy,s,a=0){c.save();c.translate(cx,cy);c.rotate(a);
+ c.strokeStyle='#8aa0a0';c.setLineDash([4,3]);c.beginPath();cam.Rp.forEach((r,i)=>{const t=i/N*TAU;i?c.lineTo(r*s*Math.cos(t),r*s*Math.sin(t)):c.moveTo(r*s,0)});c.closePath();c.stroke();c.setLineDash([]);
+ c.fillStyle='#EBD3A6';c.strokeStyle='#8a5a1a';c.lineWidth=1.5;c.beginPath();cam.pts.forEach((q,i)=>i?c.lineTo(q[0]*s,q[1]*s):c.moveTo(q[0]*s,q[1]*s));c.closePath();c.fill();c.stroke();
+ c.fillStyle='#fff';c.beginPath();c.arc(0,0,3*s,0,TAU);c.fill();c.stroke();c.restore()}
+function renderCams(){const R=S.R;if(!R){$('#camTable').innerHTML='<div class="msg">Add a drawing in the Draw tab first.</div>';$('#camv').getContext('2d').clearRect(0,0,1100,380);return}
+ const c=$('#camv').getContext('2d');c.clearRect(0,0,1100,380);const s=150/R.Rmax;
+ ['X','Y'].forEach((k,i)=>{drawCam(c,R.C[k],275+i*550,190,s);c.fillStyle='#12262A';c.font='600 14px system-ui';c.textAlign='center';c.fillText('Cam '+k,275+i*550,372)});c.textAlign='left';
+ $('#camTable').innerHTML=`<table><tr><th>Cam</th><th>Base radius</th><th>Lift</th><th>Roller radius</th><th>Max pressure angle</th><th>Min curvature radius</th><th>Roller error (cam)</th></tr>`+['X','Y'].map(k=>`<tr><td>${k}</td><td class="n">${R.o.Rb} mm</td><td class="n">${R.lift.toFixed(1)} mm</td><td class="n">${R.o.Rr} mm</td><td class="n">${R.C[k].pa.toFixed(1)}°</td><td class="n">${R.C[k].rho>1e8?'∞':R.C[k].rho.toFixed(1)+' mm'}</td><td class="n">${R.C[k].err.toFixed(2)} mm</td></tr>`).join('')+`</table><p style="color:var(--mut);margin:10px 0 0">Option ${S.opt} (${R.o.n}): pantograph ×${(1/R.o.lev).toFixed(1)}, smoothing window ${2*R.o.k+1} samples. Dashed: pitch curve. Solid: cut profile (pitch minus roller radius).</p>`}
+function renderSim(){const cv=$('#simv'),c=cv.getContext('2d'),R=S.R;c.clearRect(0,0,1000,520);
+ if(!R){c.fillStyle='#8aa0a0';c.font='15px system-ui';c.textAlign='center';c.fillText('Add a drawing in the Draw tab first',500,260);c.textAlign='left';return}
+ const i=Math.floor(S.ang)%N,sc=440/(S.size*1.15),ox=260,oy=260;
+ c.fillStyle='#FBF7EC';c.strokeStyle='#C9B88F';c.fillRect(ox-S.size*sc*.6,oy-S.size*sc*.6,S.size*1.2*sc,S.size*1.2*sc);c.strokeRect(ox-S.size*sc*.6,oy-S.size*sc*.6,S.size*1.2*sc,S.size*1.2*sc);
+ c.lineWidth=2;c.lineCap='round';c.strokeStyle='#E1D7BC';c.beginPath();R.px.forEach((v,k)=>{const X=ox+v*sc,Y=oy-R.py[k]*sc;k?c.lineTo(X,Y):c.moveTo(X,Y)});c.closePath();c.stroke();
+ c.strokeStyle='#12262A';c.lineWidth=2.2;for(let k=1;k<=i;k++){{c.beginPath();c.moveTo(ox+R.x[k-1]*sc,oy-R.y[k-1]*sc);c.lineTo(ox+R.x[k]*sc,oy-R.y[k]*sc);c.stroke()}}
+ const px=ox+R.x[i]*sc,py=oy-R.y[i]*sc;c.fillStyle='#B3261E';c.beginPath();c.arc(px,py,5,0,TAU);c.fill();
+ c.strokeStyle='#C98F3E';c.lineWidth=1;c.beginPath();c.moveTo(ox-S.size*sc*.6,py);c.lineTo(px,py);c.moveTo(px,oy-S.size*sc*.6);c.lineTo(px,py);c.stroke();
+ const sc2=70/R.Rmax;['X','Y'].forEach((k,j)=>{const cx=690,cy=130+j*250,cm=R.C[k];drawCam(c,cm,cx,cy,sc2,-Math.PI/2-i/N*TAU);
+  const Rp=cm.Rp[0],yy=cy-cm.Rp[i]*sc2;
+  c.strokeStyle='#12262A';c.lineWidth=3;c.beginPath();c.moveTo(cx,yy);c.lineTo(cx,yy-35);c.stroke();c.fillStyle='#12262A';c.beginPath();c.arc(cx,yy,3,0,TAU);c.fill();
+  c.font='13px system-ui';c.fillText(`Cam ${k}`,780,cy-8);c.fillStyle='#5B6E70';c.font='12px ui-monospace,monospace';c.fillText(`r = ${cm.Rp[i].toFixed(1)} mm`,780,cy+10)});
+ c.fillStyle='#5B6E70';c.font='12px ui-monospace,monospace';c.fillText(`shaft ${i}°  ·  ${(i/N*60/S.rpm).toFixed(1)} s`,10,510);
+ $('#ang').value=i}
+function renderParts(){const R=S.R;if(!R){$('#partsSvg').innerHTML='<div class="msg">Add a drawing in the Draw tab first.</div>';$('#partInfo').textContent='';return}
+ const k=sheets();$('#partsSvg').innerHTML=svgOut().replace(/width="[^"]*mm" height="[^"]*mm"/,'style="width:100%;min-width:640px"');
+ $('#partInfo').textContent=`Cams turn counter-clockwise as seen on this view. ${k.it.length} parts on ${k.n} sheet${k.n>1?'s':''}. Red = cut, blue = holes. Verify kerf and hole sizes on a scrap piece before cutting.`}
+function renderBuild(){const R=S.R;if(!R){['#checks','#bom','#trouble'].forEach(empty);$('#steps').innerHTML='';return}
+ $('#checks').innerHTML='<table>'+R.checks.map(c=>`<tr><td>${c.n}<div style="color:var(--mut);font-size:12px">${c.t}</div></td><td class="n">${c.v}</td><td>${chipHtml(c.l)}</td></tr>`).join('')+'</table>';
+ const[sym,f]=REG[S.region];let tot=0;
+ $('#bom').innerHTML='<table><tr><th>Item</th><th>Qty</th><th>Est. cost</th></tr>'+bomRows().map(r=>{const t=r[1]*r[2]*f;tot+=t;return`<tr><td>${r[0]}</td><td class="n">${r[1]}</td><td class="n">${sym}${t.toFixed(t<10?2:0)}</td></tr>`}).join('')+`<tr><td><b>Total (${S.region})</b></td><td></td><td class="n"><b>${sym}${tot.toFixed(tot<10?2:0)}</b></td></tr></table><p style="color:var(--mut);font-size:12px">Rough estimates only; local prices vary.</p>`;
+ $('#steps').innerHTML=STEPS.map(s=>`<li>${s}</li>`).join('');
+ $('#trouble').innerHTML='<table>'+TROUBLE.map(t=>`<tr><td><b>${t[0]}</b></td><td>${t[1]}</td></tr>`).join('')+'</table>'}
+
+/* ---------- app shell ---------- */
+const tabs=$('#tabs');TABS.forEach(([id,n])=>{const b=document.createElement('button');b.textContent=n;b.dataset.t=id;b.onclick=()=>show(id);tabs.appendChild(b)});
+function show(id){S.tab=id;document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id==='s-'+id));tabs.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.t===id));renderActive()}
+function renderActive(){({draw:renderPad,motion:renderMotion,cams:renderCams,sim:renderSim,parts:renderParts,build:renderBuild})[S.tab]()}
+let tm;function refresh(){clearTimeout(tm);tm=setTimeout(()=>{compute();renderPad();renderActive()},40)}
+[['size','size',1],['rpm','rpm',1],['opt','opt',0],['motor','motor',0],['region','region',0]].forEach(([id,k,num])=>{$('#'+id).onchange=e=>{S[k]=num?Math.max(1,+e.target.value||1):e.target.value;refresh()}});
+$('#play').onclick=()=>{S.play=!S.play;$('#play').textContent=S.play?'Pause':'Play'};
+$('#reset').onclick=()=>{S.ang=0};
+$('#ang').oninput=e=>{S.play=false;$('#play').textContent='Play';S.ang=+e.target.value};
+let last=0;function loop(t){if(S.tab==='sim'&&S.R){if(S.play)S.ang=(S.ang+(t-last)/16*.5*(+$('#spd').value))%N;renderSim()}last=t;requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+S.strokes=PRE.House();show('draw');refresh();
+</script>
+</body>
+</html>
